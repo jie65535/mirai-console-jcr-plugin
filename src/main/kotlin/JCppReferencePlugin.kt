@@ -39,8 +39,8 @@ object JCppReferencePlugin : KotlinPlugin(
         return map
     }
 
-    private val indexC = loadMap("/devhelp-index-c.txt")
-    private val indexCpp = loadMap("/devhelp-index-cpp.txt")
+    private val indexC by lazy { loadMap("/devhelp-index-c.txt") }
+    private val indexCpp by lazy { loadMap("/devhelp-index-cpp.txt") }
 
     override fun onEnable() {
         logger.info { "Plugin loaded" }
