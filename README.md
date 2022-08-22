@@ -14,5 +14,5 @@ cpp <keyword> # 搜索CPP文档
 ```
 
 # 索引来源
-c 索引来自官网离线文档，手动解析生成
-cpp 索引来自 https://github.com/Guyutongxue/cppreference-index 感谢 @Guyutongxue
+ - c 索引来自官网离线文档，手动解析生成
+ - cpp 索引来自 https://github.com/Guyutongxue/cppreference-index 感谢 @Guyutongxue
