@@ -1,9 +1,11 @@
 package top.jie65535.jcr
 
+import net.mamoe.mirai.console.command.CommandManager.INSTANCE.register
 import net.mamoe.mirai.console.plugin.jvm.JvmPluginDescription
 import net.mamoe.mirai.console.plugin.jvm.KotlinPlugin
 import net.mamoe.mirai.event.GlobalEventChannel
 import net.mamoe.mirai.event.subscribeMessages
+import net.mamoe.mirai.message.data.MessageSource.Key.quote
 import net.mamoe.mirai.utils.info
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -12,7 +14,7 @@ object JCppReferencePlugin : KotlinPlugin(
     JvmPluginDescription(
         id = "top.jie65535.mirai-console-jcr-plugin",
         name = "J Cpp Reference Plugin",
-        version = "0.1.0"
+        version = "0.2.0"
     ) {
         author("jie65535")
         info("cppreference.com 帮助插件")
@@ -40,30 +42,30 @@ object JCppReferencePlugin : KotlinPlugin(
     }
 
     private val indexC by lazy { loadMap("/devhelp-index-c.txt") }
-    private val indexCpp by lazy { loadMap("/devhelp-index-cpp.txt") }
+//    private val indexCpp by lazy { loadMap("/devhelp-index-cpp.txt") }
 
     override fun onEnable() {
         logger.info { "Plugin loaded" }
+        PluginCommands.register()
+        Data.initData()
 
         val eventChannel = GlobalEventChannel.parentScope(this)
         eventChannel.subscribeMessages {
-            startsWith("c ") {
-                val keyword = it.trim()
+            startsWith("c ") { keyword ->
                 if (keyword.isEmpty()) return@startsWith
                 logger.info("check c \"$keyword\"")
                 val link = indexC[keyword]
                 if (link != null) {
-                    subject.sendMessage(cppreferencePrefix + link)
+                    subject.sendMessage(message.quote() + cppreferencePrefix + link)
                 }
             }
 
-            startsWith("cpp ") {
-                val keyword = it.trim()
+            startsWith("cpp ") { keyword ->
                 if (keyword.isEmpty()) return@startsWith
                 logger.info("check cpp \"$keyword\"")
-                val link = indexCpp[keyword]
-                if (link != null) {
-                    subject.sendMessage(cppreferencePrefix + link)
+                val index = Data.getIndex(keyword)
+                if (index != null) {
+                    subject.sendMessage(message.quote() + cppreferencePrefix + index.link)
                 }
             }
         }
