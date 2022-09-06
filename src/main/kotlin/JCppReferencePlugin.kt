@@ -14,13 +14,14 @@ object JCppReferencePlugin : KotlinPlugin(
     JvmPluginDescription(
         id = "top.jie65535.mirai-console-jcr-plugin",
         name = "J Cpp Reference Plugin",
-        version = "0.2.0"
+        version = "0.3.0"
     ) {
         author("jie65535")
-        info("cppreference.com 帮助插件")
+        info("C++ 参考搜索插件")
     }
 ) {
     private const val cppreferencePrefix = "https://zh.cppreference.com/w/"
+    private const val qtDocPrefix = "https://doc.qt.io/qt-5/"
 
     private fun loadMap(path: String): Map<String, String> {
         val map = mutableMapOf<String, String>()
@@ -28,21 +29,47 @@ object JCppReferencePlugin : KotlinPlugin(
         if (stream == null) {
             logger.error("资源文件为空")
         } else {
-            val br = BufferedReader(InputStreamReader(stream))
-            while (br.ready()) {
-                val line = br.readLine()
-                val s = line.indexOf('\t')
-                if (s > 0) {
-                    map[line.substring(0, s)] = line.substring(s+1)
+            stream.use {
+                val br = BufferedReader(InputStreamReader(stream))
+                while (br.ready()) {
+                    val line = br.readLine()
+                    val s = line.indexOf('\t')
+                    if (s > 0) {
+                        val key = line.substring(0, s)
+                        val url = line.substring(s+1)
+                        map.putIfAbsent(key, url)
+                        val lowerKey = key.lowercase()
+                        map.putIfAbsent(lowerKey, url)
+                    }
                 }
             }
+            splitKeys(map)
         }
         logger.info("\"$path\" ${map.size} keywords loaded")
         return map
     }
 
+    private fun splitKeys(map: MutableMap<String, String>) {
+        val subMap = mutableMapOf<String, String>()
+        for (item in map) {
+            val s = item.key.indexOf("::")
+            if (s >= 0) {
+                val sub = item.key.substring(s+2)
+                if (!map.containsKey(sub)) {
+                    subMap[sub] = item.value
+                }
+            }
+        }
+        if (subMap.isNotEmpty()) {
+            splitKeys(subMap)
+            for (item in subMap) {
+                map.putIfAbsent(item.key, item.value)
+            }
+        }
+    }
+
     private val indexC by lazy { loadMap("/devhelp-index-c.txt") }
-//    private val indexCpp by lazy { loadMap("/devhelp-index-cpp.txt") }
+    private val indexQt by lazy { loadMap("/qt-5.13.0.txt") }
 
     override fun onEnable() {
         logger.info { "Plugin loaded" }
@@ -51,12 +78,18 @@ object JCppReferencePlugin : KotlinPlugin(
 
         val eventChannel = GlobalEventChannel.parentScope(this)
         eventChannel.subscribeMessages {
+
             startsWith("c ") { keyword ->
                 if (keyword.isEmpty()) return@startsWith
                 logger.info("check c \"$keyword\"")
-                val link = indexC[keyword]
-                if (link != null) {
-                    subject.sendMessage(message.quote() + cppreferencePrefix + link)
+                var cLink = indexC[keyword]
+                if (cLink != null) {
+                    subject.sendMessage(message.quote() + cppreferencePrefix + cLink)
+                } else {
+                    cLink = indexC[keyword.lowercase()]
+                    if (cLink != null) {
+                        subject.sendMessage(message.quote() + cppreferencePrefix + cLink)
+                    }
                 }
             }
 
@@ -66,6 +99,20 @@ object JCppReferencePlugin : KotlinPlugin(
                 val index = Data.getIndex(keyword)
                 if (index != null) {
                     subject.sendMessage(message.quote() + cppreferencePrefix + index.link)
+                }
+            }
+
+            startsWith("qt ") { keyword ->
+                if (keyword.isEmpty()) return@startsWith
+                logger.info("check qt \"$keyword\"")
+                var qtLink = indexQt[keyword]
+                if (qtLink != null) {
+                    subject.sendMessage(message.quote() + qtDocPrefix + qtLink)
+                } else {
+                    qtLink = indexQt[keyword.lowercase()]
+                    if (qtLink != null) {
+                        subject.sendMessage(message.quote() + qtDocPrefix + qtLink)
+                    }
                 }
             }
         }
