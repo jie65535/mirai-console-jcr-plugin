@@ -1,10 +1,7 @@
 package top.jie65535.jcr
 
-import kotlinx.coroutines.runInterruptible
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
-import okhttp3.OkHttpClient
-import okhttp3.Request
 
 @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
 object Data {
@@ -20,6 +17,7 @@ object Data {
 
     /**
      * 初始化数据
+     * 更新索引：https://cdn.jsdelivr.net/npm/@gytx/cppreference-index/dist/generated.json
      */
     fun initData() {
         val linkMap = JCppReferencePlugin.resolveDataFile("linkmap.json")
@@ -32,31 +30,6 @@ object Data {
                 arrayOf()
             } else {
                 Json.decodeFromString(resource.readText())
-            }
-        }
-    }
-
-    private val httpClient by lazy { OkHttpClient() }
-
-    /**
-     * 更新数据
-     */
-    suspend fun updateData() {
-        val call = httpClient.newCall(Request.Builder()
-            .url("https://cdn.jsdelivr.net/npm/@gytx/cppreference-index/dist/generated.json")
-            .build())
-        JCppReferencePlugin.logger.info("正在下载索引")
-        runInterruptible {
-            val response = call.execute()
-            if (response.isSuccessful) {
-                val json = response.body!!.string()
-                indexes = Json.decodeFromString(json)
-                // 保存到文件
-                JCppReferencePlugin.resolveDataFile("linkmap.json")
-                    .writeText(json)
-                JCppReferencePlugin.logger.info("索引更新完成")
-            } else {
-                JCppReferencePlugin.logger.error("下载失败 HTTP Code: ${response.code}")
             }
         }
     }
